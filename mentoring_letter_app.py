@@ -15,7 +15,15 @@ from pptx.dml.color import RGBColor
 APP_TITLE = "멘토링 Letter 자동 생성기"
 FIRST_SENTENCE_TEMPLATE = "{mentor} 멘토님, {mentee} 멘티의 멘토링 지원을 잘 부탁드립니다."
 
-# 기본 요청사항
+# --------- 폰트 사이즈 전역 설정 ---------
+HEADER_FONT_SIZE = 14          # 맨 위 설명 문구
+SECTION_TITLE_SIZE = 20        # "멘토에게", "활동 후기"
+FIRST_SENTENCE_SIZE = 14       # test 멘토님, TEST 멘티...
+BOX_TITLE_SIZE = 15            # "조직장 요청사항", "멘티 질문·고민", 우측 박스 제목
+BODY_FONT_SIZE = 12            # 본문 텍스트
+FOOTER_FONT_SIZE = 9           # 맨 아래 Mentor/Mentee/Date
+
+# --------- 기본 문구 ---------
 DEFAULT_REQUEST_TEXT = """1) 조직, 회사에 대한 이해
   - 조직의 방향성 및 구성에 대한 빠른 학습
   - 안정적으로 팀 문화에 적응할 수 있도록 도와주세요.
@@ -25,7 +33,6 @@ DEFAULT_REQUEST_TEXT = """1) 조직, 회사에 대한 이해
   - 팀 업무를 위해 사용 필요한 각종 시스템 및 프로세스에 대해 알려주세요.
   - 앞으로 맡아서 진행할 프로젝트 내 역할 분담"""
 
-# 기본 멘토 활동 후기 설명
 DEFAULT_MENTOR_NOTE = """▶ 리더 요청 사항 기반 활동한 내용을 간단하게 작성해주세요
 ▶ 추가적으로 조직장이 F/U이 필요한 사항을 작성해주세요.
    (ex 멘토링 활동간 멘티 궁금해 했으나, 답변을 못한 부분 or 요청한 사항)"""
@@ -35,8 +42,18 @@ RIGHT_BG = (237, 233, 226)
 FONT_NAME = "Malgun Gothic"
 
 
-def _add_textbox(slide, left_in, top_in, width_in, height_in, title, body,
-                 font_size_title=28, font_size_body=18, bold_title=True):
+def _add_textbox(
+    slide,
+    left_in,
+    top_in,
+    width_in,
+    height_in,
+    title,
+    body,
+    font_size_title=BOX_TITLE_SIZE,
+    font_size_body=BODY_FONT_SIZE,
+    bold_title=True,
+):
     left = Inches(left_in)
     top = Inches(top_in)
     width = Inches(width_in)
@@ -53,9 +70,10 @@ def _add_textbox(slide, left_in, top_in, width_in, height_in, title, body,
     run.font.bold = bold_title
     run.font.name = FONT_NAME
 
+    # 간격
     p = tf.add_paragraph()
     p.text = ""
-    p.space_after = Pt(4)
+    p.space_after = Pt(2)
 
     # 본문
     for line in (body or "").splitlines():
@@ -66,12 +84,22 @@ def _add_textbox(slide, left_in, top_in, width_in, height_in, title, body,
     return shape
 
 
-def _add_rect(slide, left_in, top_in, width_in, height_in, fill_rgb=None,
-              line_rgb=(180, 180, 180), line_width_pt=1.25):
+def _add_rect(
+    slide,
+    left_in,
+    top_in,
+    width_in,
+    height_in,
+    fill_rgb=None,
+    line_rgb=(180, 180, 180),
+    line_width_pt=1.0,
+):
     shape = slide.shapes.add_shape(
         MSO_SHAPE.RECTANGLE,
-        Inches(left_in), Inches(top_in),
-        Inches(width_in), Inches(height_in)
+        Inches(left_in),
+        Inches(top_in),
+        Inches(width_in),
+        Inches(height_in),
     )
     if fill_rgb:
         shape.fill.solid()
@@ -86,80 +114,147 @@ def _add_rect(slide, left_in, top_in, width_in, height_in, fill_rgb=None,
     return shape
 
 
-def build_ppt(mentor, mentee, manager, first_sentence_template, request_text,
-              use_default_request, qna_text, hide_qna_if_empty, mentor_note_text,
-              logo_bytes, theme_color_hex):
+def build_ppt(
+    mentor,
+    mentee,
+    manager,
+    first_sentence_template,
+    request_text,
+    use_default_request,
+    qna_text,
+    hide_qna_if_empty,
+    mentor_note_text,
+    logo_bytes,
+    theme_color_hex,
+):
 
     prs = Presentation()
+
+    # ✅ 16:9 비율로 고정
     prs.slide_width = Inches(13.33)
     prs.slide_height = Inches(7.5)
-                
+
     blank_layout = prs.slide_layouts[6]
     slide = prs.slides.add_slide(blank_layout)
 
-    # 테두리
-    _add_rect(slide, 0.3, 0.3, 12.7, 6.9, None, (60, 60, 60), 1.5)
+    # 전체 테두리
+    _add_rect(slide, 0.4, 0.4, 12.5, 6.7, None, (80, 80, 80), 1.25)
 
     # 로고
     if logo_bytes:
-        slide.shapes.add_picture(io.BytesIO(logo_bytes), Inches(0.5), Inches(0.5), height=Inches(0.55))
+        slide.shapes.add_picture(
+            io.BytesIO(logo_bytes),
+            Inches(0.55),
+            Inches(0.55),
+            height=Inches(0.45),
+        )
 
-    # 상단 문구
-    header = slide.shapes.add_textbox(Inches(1.0), Inches(0.5), Inches(11.4), Inches(0.6))
+    # 상단 설명 문구
+    header = slide.shapes.add_textbox(
+        Inches(1.0), Inches(0.55), Inches(11.2), Inches(0.5)
+    )
     tf = header.text_frame
     p = tf.paragraphs[0]
     r = p.add_run()
     r.text = "멘토링 Letter는 멘토/멘티가 유의미한 멘토링이 되도록 참고할 수 있는 내용을 리더가 멘토에게 보내는 메시지 입니다."
-    r.font.size = Pt(16)
+    r.font.size = Pt(HEADER_FONT_SIZE)
     r.font.bold = True
     r.font.name = FONT_NAME
 
-    # 섹션 제목
-    for (text, x) in [("멘토에게", 1.0), ("활동 후기", 7.2)]:
-        box = slide.shapes.add_textbox(Inches(x), Inches(1.1), Inches(6.0), Inches(0.5))
+    # 섹션 제목 ("멘토에게", "활동 후기")
+    for (text, x) in [("멘토에게", 1.0), ("활동 후기", 7.4)]:
+        box = slide.shapes.add_textbox(
+            Inches(x), Inches(1.15), Inches(5.5), Inches(0.5)
+        )
         tfb = box.text_frame
+        tfb.clear()
         r = tfb.paragraphs[0].add_run()
         r.text = text
-        r.font.size = Pt(24)
+        r.font.size = Pt(SECTION_TITLE_SIZE)
         r.font.bold = True
         r.font.name = FONT_NAME
 
     # 첫 문장
-    sentence = first_sentence_template.format(mentor=mentor.strip(), mentee=mentee.strip())
-    box = slide.shapes.add_textbox(Inches(1.0), Inches(1.6), Inches(11.4), Inches(0.6))
+    sentence = first_sentence_template.format(
+        mentor=mentor.strip(), mentee=mentee.strip()
+    )
+    box = slide.shapes.add_textbox(
+        Inches(1.0), Inches(1.65), Inches(11.2), Inches(0.5)
+    )
     tf = box.text_frame
-    r = tf.paragraphs[0].add_run()
+    p = tf.paragraphs[0]
+    r = p.add_run()
     r.text = sentence
-    r.font.size = Pt(18)
+    r.font.size = Pt(FIRST_SENTENCE_SIZE)
     r.font.name = FONT_NAME
 
-    left_x, top_y = 1.0, 2.1
-    col_w, col_h = 6.0, 4.9
-    _add_rect(slide, left_x + col_w + 0.2, top_y, col_w, col_h, RIGHT_BG, (180, 180, 180), 1.25)
+    # 레이아웃 좌표
+    left_x, top_y = 1.0, 2.2
+    col_w, col_h = 6.0, 4.5
 
-    # 좌측: 요청사항
+    # 우측 카드 배경
+    _add_rect(
+        slide,
+        left_x + col_w + 0.25,
+        top_y,
+        col_w,
+        col_h,
+        RIGHT_BG,
+        (180, 180, 180),
+        0.75,
+    )
+
+    # 좌측: 조직장 요청사항
     req = (request_text or "").strip()
     if use_default_request or len(req) < 5:
         req = DEFAULT_REQUEST_TEXT
-    _add_textbox(slide, left_x, top_y, col_w, 2.6, "조직장 요청사항", req)
 
-    # 좌측: 질문·고민
+    _add_textbox(
+        slide,
+        left_in=left_x,
+        top_in=top_y,
+        width_in=col_w,
+        height_in=2.4,
+        title="조직장 요청사항",
+        body=req,
+    )
+
+    # 좌측: 멘티 질문·고민
+    qna_text = qna_text or ""
     if not (hide_qna_if_empty and not qna_text.strip()):
         qna = qna_text.strip() or "(멘티 작성 예정)"
-        _add_textbox(slide, left_x, top_y + 2.7, col_w, 2.3, "멘티 질문·고민", qna)
+        _add_textbox(
+            slide,
+            left_in=left_x,
+            top_in=top_y + 2.45,
+            width_in=col_w,
+            height_in=2.25,
+            title="멘티 질문·고민",
+            body=qna,
+        )
 
-    # 우측: 활동 후기
-    _add_textbox(slide, left_x + col_w + 0.25, top_y + 0.15,
-                 col_w - 0.5, col_h - 0.3, "멘토 활동 후기", mentor_note_text)
+    # 우측: 멘토 활동 후기
+    _add_textbox(
+        slide,
+        left_in=left_x + col_w + 0.35,
+        top_in=top_y + 0.15,
+        width_in=col_w - 0.6,
+        height_in=col_h - 0.3,
+        title="멘토 활동 후기",
+        body=mentor_note_text,
+    )
 
     # 푸터
-    footer = slide.shapes.add_textbox(Inches(0.7), Inches(7.1), Inches(12.0), Inches(0.3))
+    footer = slide.shapes.add_textbox(
+        Inches(0.6), Inches(7.0), Inches(12.2), Inches(0.4)
+    )
     tf = footer.text_frame
+    tf.clear()
     p = tf.paragraphs[0]
     p.alignment = PP_ALIGN.RIGHT
     r = p.add_run()
     r.text = f"Mentor: {mentor}  |  Mentee: {mentee}  |  Date: {date.today():%Y.%m.%d}"
-    r.font.size = Pt(12)
+    r.font.size = Pt(FOOTER_FONT_SIZE)
     r.font.name = FONT_NAME
 
     bio = io.BytesIO()
@@ -175,7 +270,9 @@ def ui():
     with st.sidebar:
         st.header("브랜딩 설정")
         theme = st.color_picker("포인트 색상", THEME_COLOR)
-        logo_file = st.file_uploader("로고 업로드 (PNG 권장)", type=["png", "jpg", "jpeg"])
+        logo_file = st.file_uploader(
+            "로고 업로드 (PNG 권장)", type=["png", "jpg", "jpeg"]
+        )
         st.caption("폰트는 시스템의 'Malgun Gothic'을 사용합니다.")
 
     col1, col2 = st.columns(2)
@@ -184,22 +281,32 @@ def ui():
         mentor = st.text_input("멘토 이름")
         mentee = st.text_input("멘티 이름")
         manager = st.text_input("조직장(선택)")
-        first_sentence_template = st.text_input("첫 문장 템플릿", value=FIRST_SENTENCE_TEMPLATE)
+        first_sentence_template = st.text_input(
+            "첫 문장 템플릿", value=FIRST_SENTENCE_TEMPLATE
+        )
 
         st.subheader("조직장 요청사항")
         request_text = st.text_area("요청사항 입력", height=200)
-        use_default_request = st.checkbox("비어있거나 짧으면 기본 양식 사용", value=True)
+        use_default_request = st.checkbox(
+            "비어있거나 짧으면 기본 양식 사용", value=True
+        )
 
         st.subheader("멘티 질문·고민")
         qna_text = st.text_area("질문·고민 입력", height=140)
-        hide_qna_if_empty = st.checkbox("질문·고민이 없으면 해당 영역 삭제", value=True)
+        hide_qna_if_empty = st.checkbox(
+            "질문·고민이 없으면 해당 영역 삭제", value=True
+        )
 
     with col2:
         st.subheader("멘토 활동 후기")
-        mentor_note_text = st.text_area("후기 가이드", value=DEFAULT_MENTOR_NOTE, height=260)
+        mentor_note_text = st.text_area(
+            "후기 가이드", value=DEFAULT_MENTOR_NOTE, height=260
+        )
 
         if mentor and mentee:
-            st.markdown(f"**미리보기:** {first_sentence_template.format(mentor=mentor, mentee=mentee)}")
+            st.markdown(
+                f"**미리보기:** {first_sentence_template.format(mentor=mentor, mentee=mentee)}"
+            )
         else:
             st.caption("멘토/멘티 이름을 입력하면 첫 문장을 미리볼 수 있어요.")
 
@@ -208,17 +315,26 @@ def ui():
             st.error("멘토/멘티 이름은 필수입니다.")
             return
         logo_bytes = logo_file.read() if logo_file else None
-        ppt_bytes = build_ppt(mentor, mentee, manager, first_sentence_template,
-                              request_text, use_default_request, qna_text,
-                              hide_qna_if_empty, mentor_note_text, logo_bytes, theme)
+        ppt_bytes = build_ppt(
+            mentor,
+            mentee,
+            manager,
+            first_sentence_template,
+            request_text,
+            use_default_request,
+            qna_text,
+            hide_qna_if_empty,
+            mentor_note_text,
+            logo_bytes,
+            theme,
+        )
         st.download_button(
             "PPT 다운로드",
             ppt_bytes,
             f"Mentoring_Letter_{mentee}_{mentor}.pptx",
-            "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+            "application/vnd.openxmlformats-officedocument.presentationml.presentation",
         )
 
 
 if __name__ == "__main__":
     ui()
-
