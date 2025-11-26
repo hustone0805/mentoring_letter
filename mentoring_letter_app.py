@@ -113,7 +113,6 @@ def _add_rect(
         shape.line.fill.background()
     return shape
 
-
 def build_ppt(
     mentor,
     mentee,
@@ -130,17 +129,17 @@ def build_ppt(
 
     prs = Presentation()
 
-    # ✅ 16:9 비율로 고정
+    # 16:9 비율 고정
     prs.slide_width = Inches(13.33)
     prs.slide_height = Inches(7.5)
 
     blank_layout = prs.slide_layouts[6]
     slide = prs.slides.add_slide(blank_layout)
 
-    # 전체 테두리
+    # 전체 테두리 (그대로)
     _add_rect(slide, 0.4, 0.4, 12.5, 6.7, None, (80, 80, 80), 1.25)
 
-    # 로고
+    # 로고 (살짝 왼쪽)
     if logo_bytes:
         slide.shapes.add_picture(
             io.BytesIO(logo_bytes),
@@ -149,9 +148,9 @@ def build_ppt(
             height=Inches(0.45),
         )
 
-    # 상단 설명 문구
+    # 상단 설명 문구 → x: 1.0 -> 0.8
     header = slide.shapes.add_textbox(
-        Inches(1.0), Inches(0.55), Inches(11.2), Inches(0.5)
+        Inches(0.8), Inches(0.55), Inches(11.2), Inches(0.5)
     )
     tf = header.text_frame
     p = tf.paragraphs[0]
@@ -162,7 +161,8 @@ def build_ppt(
     r.font.name = FONT_NAME
 
     # 섹션 제목 ("멘토에게", "활동 후기")
-    for (text, x) in [("멘토에게", 1.0), ("활동 후기", 7.4)]:
+    # 둘 다 0.2inch 왼쪽으로 이동: 1.0 -> 0.8, 7.4 -> 7.2
+    for (text, x) in [("멘토에게", 0.8), ("활동 후기", 7.2)]:
         box = slide.shapes.add_textbox(
             Inches(x), Inches(1.15), Inches(5.5), Inches(0.5)
         )
@@ -174,12 +174,12 @@ def build_ppt(
         r.font.bold = True
         r.font.name = FONT_NAME
 
-    # 첫 문장
+    # 첫 문장 → x: 1.0 -> 0.8
     sentence = first_sentence_template.format(
         mentor=mentor.strip(), mentee=mentee.strip()
     )
     box = slide.shapes.add_textbox(
-        Inches(1.0), Inches(1.65), Inches(11.2), Inches(0.5)
+        Inches(0.8), Inches(1.65), Inches(11.2), Inches(0.5)
     )
     tf = box.text_frame
     p = tf.paragraphs[0]
@@ -188,11 +188,11 @@ def build_ppt(
     r.font.size = Pt(FIRST_SENTENCE_SIZE)
     r.font.name = FONT_NAME
 
-    # 레이아웃 좌표
-    left_x, top_y = 1.0, 2.2
+    # 레이아웃 좌표 → left_x 1.0 -> 0.8 (전체 좌측으로 살짝 이동)
+    left_x, top_y = 0.8, 2.2
     col_w, col_h = 6.0, 4.5
 
-    # 우측 카드 배경
+    # 우측 카드 배경도 함께 왼쪽으로: left_x + col_w + 0.25
     _add_rect(
         slide,
         left_x + col_w + 0.25,
@@ -233,7 +233,7 @@ def build_ppt(
             body=qna,
         )
 
-    # 우측: 멘토 활동 후기
+    # 우측: 멘토 활동 후기 (같이 왼쪽으로 이동)
     _add_textbox(
         slide,
         left_in=left_x + col_w + 0.35,
@@ -244,9 +244,9 @@ def build_ppt(
         body=mentor_note_text,
     )
 
-    # 푸터
+    # 푸터 → 더 아래로: y 7.0 -> 7.25
     footer = slide.shapes.add_textbox(
-        Inches(0.6), Inches(7.0), Inches(12.2), Inches(0.4)
+        Inches(0.6), Inches(7.25), Inches(12.2), Inches(0.4)
     )
     tf = footer.text_frame
     tf.clear()
@@ -261,7 +261,6 @@ def build_ppt(
     prs.save(bio)
     bio.seek(0)
     return bio
-
 
 def ui():
     st.set_page_config(page_title=APP_TITLE, page_icon="🧡", layout="wide")
@@ -338,3 +337,4 @@ def ui():
 
 if __name__ == "__main__":
     ui()
+
