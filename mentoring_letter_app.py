@@ -91,6 +91,9 @@ def build_ppt(mentor, mentee, manager, first_sentence_template, request_text,
               logo_bytes, theme_color_hex):
 
     prs = Presentation()
+    prs.slide_width = Inches(13.33)
+    prs.slide_height = Inches(7.5)
+                
     blank_layout = prs.slide_layouts[6]
     slide = prs.slides.add_slide(blank_layout)
 
@@ -218,3 +221,4 @@ def ui():
 
 if __name__ == "__main__":
     ui()
+
